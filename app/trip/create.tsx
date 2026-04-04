@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, useColorScheme, ScrollView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, useColorScheme, ScrollView, Platform, Modal, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTripStore } from '../../src/store/useTripStore';
 import { Colors } from '../../src/constants/Colors';
 import { Calendar, MapPin, Tag, Check, X } from 'lucide-react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DatePicker from 'react-native-date-picker';
 import * as Haptics from 'expo-haptics';
 
 export default function CreateTripScreen() {
@@ -21,14 +21,21 @@ export default function CreateTripScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
 
+  const formatDateToLocal = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
   const handleCreate = () => {
     if (!name || !destination) return;
     
     const id = addTrip({
       name,
       destination,
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0],
+      startDate: formatDateToLocal(startDate),
+      endDate: formatDateToLocal(endDate),
       deposits: [],
     });
     
@@ -71,28 +78,31 @@ export default function CreateTripScreen() {
             >
               <Calendar size={18} color={colors.primary} />
               <Text style={[styles.input, { color: colors.text, marginTop: Platform.OS === 'ios' ? 0 : 3 }]}>
-                {startDate.toISOString().split('T')[0]}
+                {formatDateToLocal(startDate)}
               </Text>
             </TouchableOpacity>
-            {showStartPicker && (
-              <DateTimePicker
-                value={startDate}
-                mode="date"
-                display="spinner"
-                onChange={(event, selectedDate) => {
-                  setShowStartPicker(Platform.OS === 'ios');
-                  if (selectedDate) {
-                    setStartDate(selectedDate);
-                    Haptics.selectionAsync();
-                  }
-                }}
-              />
-            )}
-            {Platform.OS === 'ios' && showStartPicker && (
-              <TouchableOpacity onPress={() => setShowStartPicker(false)} style={{ alignItems: 'flex-end', marginTop: 8, marginRight: 8 }}>
-                <Text style={{ color: colors.primary }}>Done</Text>
-              </TouchableOpacity>
-            )}
+            <Modal visible={showStartPicker} transparent animationType="slide">
+              <View style={styles.modalOverlay}>
+                <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+                  <View style={styles.modalHeader}>
+                    <TouchableOpacity onPress={() => setShowStartPicker(false)}>
+                      <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 16 }}>Done</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <DatePicker
+                    date={startDate}
+                    mode="date"
+                    onDateChange={(selectedDate) => {
+                      setStartDate(selectedDate);
+                      if (formatDateToLocal(selectedDate) > formatDateToLocal(endDate)) {
+                        setEndDate(new Date(selectedDate));
+                      }
+                      Haptics.selectionAsync();
+                    }}
+                  />
+                </View>
+              </View>
+            </Modal>
           </View>
           <View style={styles.halfWidth}>
             <Text style={[styles.label, { color: colors.text }]}>End Date</Text>
@@ -102,28 +112,33 @@ export default function CreateTripScreen() {
             >
               <Calendar size={18} color={colors.primary} />
               <Text style={[styles.input, { color: colors.text, marginTop: Platform.OS === 'ios' ? 0 : 3 }]}>
-                {endDate.toISOString().split('T')[0]}
+                {formatDateToLocal(endDate)}
               </Text>
             </TouchableOpacity>
-            {showEndPicker && (
-              <DateTimePicker
-                value={endDate}
-                mode="date"
-                display="spinner"
-                onChange={(event, selectedDate) => {
-                  setShowEndPicker(Platform.OS === 'ios');
-                  if (selectedDate) {
-                    setEndDate(selectedDate);
-                    Haptics.selectionAsync();
-                  }
-                }}
-              />
-            )}
-            {Platform.OS === 'ios' && showEndPicker && (
-              <TouchableOpacity onPress={() => setShowEndPicker(false)} style={{ alignItems: 'flex-end', marginTop: 8, marginRight: 8 }}>
-                <Text style={{ color: colors.primary }}>Done</Text>
-              </TouchableOpacity>
-            )}
+            <Modal visible={showEndPicker} transparent animationType="slide">
+              <View style={styles.modalOverlay}>
+                <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+                  <View style={styles.modalHeader}>
+                    <TouchableOpacity onPress={() => setShowEndPicker(false)}>
+                      <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 16 }}>Done</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <DatePicker
+                    date={endDate}
+                    mode="date"
+                    onDateChange={(selectedDate) => {
+                      if (formatDateToLocal(selectedDate) < formatDateToLocal(startDate)) {
+                        Alert.alert('Invalid Date', 'End date cannot be earlier than the start date.');
+                        setEndDate(new Date(startDate));
+                      } else {
+                        setEndDate(selectedDate);
+                      }
+                      Haptics.selectionAsync();
+                    }}
+                  />
+                </View>
+              </View>
+            </Modal>
           </View>
         </View>
 
@@ -212,4 +227,23 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     fontSize: 16,
   },
+  modalOverlay: {
+    flex: 1, 
+    backgroundColor: 'rgba(0,0,0,0.5)', 
+    justifyContent: 'flex-end'
+  },
+  modalContent: {
+    borderTopLeftRadius: 20, 
+    borderTopRightRadius: 20, 
+    alignItems: 'center',
+    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    paddingTop: 16,
+  },
+  modalHeader: {
+    width: '100%', 
+    flexDirection: 'row', 
+    justifyContent: 'flex-end', 
+    paddingHorizontal: 20, 
+    marginBottom: 10
+  }
 });
