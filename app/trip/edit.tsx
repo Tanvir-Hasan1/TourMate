@@ -1,38 +1,64 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, useColorScheme, ScrollView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTripStore } from '../../src/store/useTripStore';
 import { Colors } from '../../src/constants/Colors';
-import { Calendar, MapPin, Tag, Check, X } from 'lucide-react-native';
+import { MapPin, Tag, Check, X, Calendar } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Haptics from 'expo-haptics';
 
-export default function CreateTripScreen() {
+export default function EditTripScreen() {
+  const router = useRouter();
+  const { getActiveTrip, updateTrip } = useTripStore();
+  const trip = getActiveTrip();
+  
   const [name, setName] = useState('');
   const [destination, setDestination] = useState('');
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
-  
+
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
   
-  const router = useRouter();
-  const { addTrip } = useTripStore();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
 
-  const handleCreate = () => {
-    if (!name || !destination) return;
+  useEffect(() => {
+    if (trip) {
+      setName(trip.name);
+      setDestination(trip.destination);
+      setStartDate(new Date(trip.startDate));
+      setEndDate(new Date(trip.endDate));
+    } else {
+      router.back();
+    }
+  }, [trip]);
+
+  const handleUpdate = () => {
+    if (!name || !destination || !trip) return;
     
-    const id = addTrip({
+    updateTrip(trip.id, {
       name,
       destination,
       startDate: startDate.toISOString().split('T')[0],
       endDate: endDate.toISOString().split('T')[0],
-      deposits: [],
     });
     
     router.back();
+  };
+
+  const onStartChange = (event: any, selectedDate?: Date) => {
+    const currentDate = selectedDate || startDate;
+    setShowStartPicker(Platform.OS === 'ios');
+    setStartDate(currentDate);
+    if (selectedDate) Haptics.selectionAsync();
+  };
+
+  const onEndChange = (event: any, selectedDate?: Date) => {
+    const currentDate = selectedDate || endDate;
+    setShowEndPicker(Platform.OS === 'ios');
+    setEndDate(currentDate);
+    if (selectedDate) Haptics.selectionAsync();
   };
 
   return (
@@ -70,7 +96,7 @@ export default function CreateTripScreen() {
               onPress={() => setShowStartPicker(true)}
             >
               <Calendar size={18} color={colors.primary} />
-              <Text style={[styles.input, { color: colors.text, marginTop: Platform.OS === 'ios' ? 0 : 3 }]}>
+              <Text style={[styles.input, { color: colors.text }]}>
                 {startDate.toISOString().split('T')[0]}
               </Text>
             </TouchableOpacity>
@@ -79,17 +105,11 @@ export default function CreateTripScreen() {
                 value={startDate}
                 mode="date"
                 display="spinner"
-                onChange={(event, selectedDate) => {
-                  setShowStartPicker(Platform.OS === 'ios');
-                  if (selectedDate) {
-                    setStartDate(selectedDate);
-                    Haptics.selectionAsync();
-                  }
-                }}
+                onChange={onStartChange}
               />
             )}
             {Platform.OS === 'ios' && showStartPicker && (
-              <TouchableOpacity onPress={() => setShowStartPicker(false)} style={{ alignItems: 'flex-end', marginTop: 8, marginRight: 8 }}>
+              <TouchableOpacity onPress={() => setShowStartPicker(false)} style={styles.closePickerBtn}>
                 <Text style={{ color: colors.primary }}>Done</Text>
               </TouchableOpacity>
             )}
@@ -101,7 +121,7 @@ export default function CreateTripScreen() {
               onPress={() => setShowEndPicker(true)}
             >
               <Calendar size={18} color={colors.primary} />
-              <Text style={[styles.input, { color: colors.text, marginTop: Platform.OS === 'ios' ? 0 : 3 }]}>
+              <Text style={[styles.input, { color: colors.text }]}>
                 {endDate.toISOString().split('T')[0]}
               </Text>
             </TouchableOpacity>
@@ -110,17 +130,11 @@ export default function CreateTripScreen() {
                 value={endDate}
                 mode="date"
                 display="spinner"
-                onChange={(event, selectedDate) => {
-                  setShowEndPicker(Platform.OS === 'ios');
-                  if (selectedDate) {
-                    setEndDate(selectedDate);
-                    Haptics.selectionAsync();
-                  }
-                }}
+                onChange={onEndChange}
               />
             )}
-            {Platform.OS === 'ios' && showEndPicker && (
-              <TouchableOpacity onPress={() => setShowEndPicker(false)} style={{ alignItems: 'flex-end', marginTop: 8, marginRight: 8 }}>
+             {Platform.OS === 'ios' && showEndPicker && (
+              <TouchableOpacity onPress={() => setShowEndPicker(false)} style={styles.closePickerBtn}>
                 <Text style={{ color: colors.primary }}>Done</Text>
               </TouchableOpacity>
             )}
@@ -129,11 +143,11 @@ export default function CreateTripScreen() {
 
         <TouchableOpacity
           style={[styles.button, { backgroundColor: colors.primary, opacity: (!name || !destination) ? 0.6 : 1 }]}
-          onPress={handleCreate}
+          onPress={handleUpdate}
           disabled={!name || !destination}
         >
           <Check color="white" size={24} style={styles.buttonIcon} />
-          <Text style={styles.buttonText}>Initialize Trip</Text>
+          <Text style={styles.buttonText}>Save Changes</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -212,4 +226,9 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     fontSize: 16,
   },
+  closePickerBtn: {
+    alignItems: 'flex-end', 
+    marginTop: 8, 
+    marginRight: 8
+  }
 });

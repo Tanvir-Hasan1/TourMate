@@ -9,22 +9,27 @@ import * as ImagePicker from 'expo-image-picker';
 import ImagePickerModal from '../../src/components/ImagePickerModal';
 
 export default function MembersScreen() {
-  const { getActiveTrip, addMember, updateMember, removeMember, addDeposit } = useTripStore();
+  const { getActiveTrip, addMember, updateMember, removeMember, addDeposit, withdrawFund, updateDeposit, deleteDeposit } = useTripStore();
   const trip = getActiveTrip();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
 
   const [modalVisible, setModalVisible] = useState(false);
   const [depositModalVisible, setDepositModalVisible] = useState(false);
+  const [withdrawModalVisible, setWithdrawModalVisible] = useState(false);
   const [pickerModalVisible, setPickerModalVisible] = useState(false);
   const [historyModalVisible, setHistoryModalVisible] = useState(false);
   const [historyMember, setHistoryMember] = useState<{ id: string; name: string } | null>(null);
   const [editingMember, setEditingMember] = useState<{ id: string; name: string; profilePicture?: string } | null>(null);
   const [inputText, setInputText] = useState('');
   const [profilePicture, setProfilePicture] = useState<string | undefined>();
+  const [editingDepositId, setEditingDepositId] = useState<string | null>(null);
   
   const [depositAmount, setDepositAmount] = useState('');
   const [depositMemberId, setDepositMemberId] = useState('');
+  
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [withdrawMemberId, setWithdrawMemberId] = useState('');
 
   if (!trip) {
     return (
@@ -41,7 +46,7 @@ export default function MembersScreen() {
     
     const memberDeposits = (trip.deposits || [])
       .filter((d) => d.memberId === historyMember.id)
-      .map((d) => ({ ...d, historyType: 'deposit' as const, displayTitle: 'Group Fund Deposit' }));
+      .map((d) => ({ ...d, historyType: 'deposit' as const, displayTitle: d.amount < 0 ? 'Group Fund Withdrawal' : 'Group Fund Deposit' }));
       
     const memberExpenses = (trip.expenses || [])
       .filter((e) => e.paidById === historyMember.id)
@@ -51,8 +56,16 @@ export default function MembersScreen() {
   }, [trip, historyMember]);
 
   const openDepositModal = () => {
+    setEditingDepositId(null);
     setDepositAmount('');
     setDepositMemberId(trip.members[0]?.id || '');
+    setDepositModalVisible(true);
+  };
+
+  const openEditDepositModal = (depositId: string, amount: number) => {
+    setEditingDepositId(depositId);
+    setDepositAmount(Math.abs(amount).toString());
+    setDepositMemberId(historyMember?.id || trip.members[0]?.id || '');
     setDepositModalVisible(true);
   };
 
@@ -60,9 +73,40 @@ export default function MembersScreen() {
     if (!depositAmount || !depositMemberId) return;
     const amountNum = parseFloat(depositAmount);
     if (!isNaN(amountNum) && amountNum > 0) {
-      addDeposit(trip.id, depositMemberId, amountNum);
+      if (editingDepositId) {
+        const originalDeposit = trip.deposits?.find(d => d.id === editingDepositId);
+        const isWithdrawal = originalDeposit ? originalDeposit.amount < 0 : false;
+        updateDeposit(trip.id, editingDepositId, isWithdrawal ? -amountNum : amountNum);
+      } else {
+        addDeposit(trip.id, depositMemberId, amountNum);
+      }
     }
     setDepositModalVisible(false);
+  };
+
+  const openWithdrawModal = () => {
+    setWithdrawAmount('');
+    setWithdrawMemberId(trip.members[0]?.id || '');
+    setWithdrawModalVisible(true);
+  };
+
+  const handleSaveWithdraw = () => {
+    if (!withdrawAmount || !withdrawMemberId) return;
+    const amountNum = parseFloat(withdrawAmount);
+    if (!isNaN(amountNum) && amountNum > 0) {
+      const groupFundBalance = getFundBalance(trip);
+      
+      if (amountNum > groupFundBalance) {
+        setWithdrawModalVisible(false);
+        setTimeout(() => {
+          Alert.alert('Insufficient Fund', `You can only withdraw up to the total available Group Fund: ৳${groupFundBalance.toLocaleString()}.`);
+        }, 300);
+        return;
+      }
+
+      withdrawFund(trip.id, withdrawMemberId, amountNum);
+    }
+    setWithdrawModalVisible(false);
   };
 
   const openAddModal = () => {
@@ -138,7 +182,12 @@ export default function MembersScreen() {
              setTimeout(() => {
                const updatedTrip = useTripStore.getState().trips.find(t => t.id === trip.id);
                if (updatedTrip && updatedTrip.members.length === prevCount) {
-                 Alert.alert('Cannot Remove', `${name} is involved in expenses or settlements. Please remove them from expenses first.`);
+                 const memberFund = (updatedTrip.deposits || []).filter(d => d.memberId === memberId).reduce((sum, d) => sum + d.amount, 0);
+                 if (memberFund > 0) {
+                   Alert.alert('Cannot Remove', `${name} has ৳${memberFund.toLocaleString()} available in the Group Fund. Please withdraw their fund before removing.`);
+                 } else {
+                   Alert.alert('Cannot Remove', `${name} is involved in expenses or settlements. Please remove them from expenses first.`);
+                 }
                }
              }, 100);
           }
@@ -214,10 +263,14 @@ export default function MembersScreen() {
         </View>
       </View>
 
-      <View style={styles.actionRow}>
-        <TouchableOpacity style={[styles.actionBadge, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={openDepositModal}>
+      <View style={[styles.actionRow, { flexDirection: 'row', gap: 12 }]}>
+        <TouchableOpacity style={[styles.actionBadge, { backgroundColor: colors.card, borderColor: colors.border, flex: 1 }]} onPress={openDepositModal}>
           <PiggyBank color={colors.primary} size={20} />
-          <Text style={[styles.actionBadgeText, { color: colors.text }]}>Add Fund Deposit</Text>
+          <Text style={[styles.actionBadgeText, { color: colors.text, flex: 1 }]} numberOfLines={1}>Deposit</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.actionBadge, { backgroundColor: colors.card, borderColor: colors.border, flex: 1 }]} onPress={openWithdrawModal}>
+          <Wallet color={colors.danger} size={20} />
+          <Text style={[styles.actionBadgeText, { color: colors.text, flex: 1 }]} numberOfLines={1}>Withdraw</Text>
         </TouchableOpacity>
       </View>
 
@@ -343,6 +396,70 @@ export default function MembersScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
+      {/* Withdraw Modal */}
+      <Modal visible={withdrawModalVisible} transparent animationType="fade">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Withdraw from Fund</Text>
+              <TouchableOpacity onPress={() => setWithdrawModalVisible(false)}>
+                <X color={colors.subtext} size={24} />
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={{ color: colors.text, marginBottom: 8, fontWeight: '600' }}>Withdraw Amount (৳)</Text>
+            <TextInput
+              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background, fontSize: 20, fontWeight: 'bold' }]}
+              placeholder="0.00"
+              placeholderTextColor={colors.subtext}
+              keyboardType="numeric"
+              value={withdrawAmount}
+              onChangeText={setWithdrawAmount}
+              autoFocus
+            />
+
+            <Text style={{ color: colors.text, marginBottom: 8, fontWeight: '600' }}>Who is withdrawing?</Text>
+            <FlatList
+              data={trip.members}
+              keyExtractor={item => item.id}
+              style={{ maxHeight: 150, marginBottom: 20 }}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={{
+                    padding: 12,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    marginBottom: 8,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    borderColor: withdrawMemberId === item.id ? colors.danger : colors.border,
+                    backgroundColor: withdrawMemberId === item.id ? colors.danger + '20' : colors.background
+                  }}
+                  onPress={() => setWithdrawMemberId(item.id)}
+                >
+                  {item.profilePicture ? (
+                    <Image source={{ uri: item.profilePicture }} style={styles.miniAvatar} />
+                  ) : (
+                    <View style={[styles.miniAvatar, { backgroundColor: item.avatarColor }]} />
+                  )}
+                  <Text style={{ color: colors.text, fontWeight: '500' }}>{item.name}</Text>
+                </TouchableOpacity>
+              )}
+            />
+
+            <TouchableOpacity 
+              style={[styles.saveBtn, { backgroundColor: colors.danger, opacity: withdrawAmount ? 1 : 0.5 }]}
+              onPress={handleSaveWithdraw}
+              disabled={!withdrawAmount}
+            >
+              <Wallet color="white" size={20} style={{ marginRight: 8 }} />
+              <Text style={styles.saveBtnText}>Withdraw Fund</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+
       {/* History Modal */}
       <Modal visible={historyModalVisible} transparent animationType="slide">
         <View style={[styles.modalOverlay, { justifyContent: 'flex-end', padding: 0 }]}>
@@ -368,17 +485,29 @@ export default function MembersScreen() {
                 </View>
               )}
               renderItem={({ item }) => (
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }}>
+                <TouchableOpacity 
+                  style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }}
+                  onPress={() => {
+                    if (item.historyType === 'deposit') {
+                      Alert.alert('Manage Entry', 'What do you want to do with this entry?', [
+                        { text: 'Cancel', style: 'cancel' },
+                        { text: 'Edit Amount', onPress: () => { setHistoryModalVisible(false); setTimeout(() => openEditDepositModal(item.id, item.amount), 300); } },
+                        { text: 'Delete', style: 'destructive', onPress: () => { deleteDeposit(trip.id, item.id); setHistoryModalVisible(false); } }
+                      ]);
+                    }
+                  }}
+                  activeOpacity={item.historyType === 'deposit' ? 0.6 : 1}
+                >
                   <View style={{ flex: 1, paddingRight: 16 }}>
                     <Text style={{ color: colors.text, fontWeight: '500', fontSize: 16 }}>{item.displayTitle}</Text>
                     <Text style={{ color: colors.subtext, fontSize: 13, marginTop: 4 }}>
                       {new Date(item.date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
                     </Text>
                   </View>
-                  <Text style={{ color: item.historyType === 'deposit' ? colors.success : colors.primary, fontWeight: 'bold', fontSize: 16 }}>
-                    ৳{item.amount.toLocaleString()}
+                  <Text style={{ color: item.historyType === 'deposit' ? (item.amount < 0 ? colors.danger : colors.success) : colors.primary, fontWeight: 'bold', fontSize: 16 }}>
+                    {item.amount < 0 ? '-' : ''}৳{Math.abs(item.amount).toLocaleString()}
                   </Text>
-                </View>
+                </TouchableOpacity>
               )}
             />
           </View>

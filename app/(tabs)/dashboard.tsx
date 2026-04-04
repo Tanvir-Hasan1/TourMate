@@ -6,12 +6,14 @@ import { calculateSettlements, getTotalSpent, getMemberBalance } from '../../src
 import { Wallet, Users, ArrowRight, CreditCard, PieChart, Download, Share2, FileText } from 'lucide-react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { exportTripToCSV, exportTripSummary, exportTripToPDF } from '../../src/utils/export';
-
+import { useRouter } from 'expo-router';
+import { Edit2 } from 'lucide-react-native';
 const { width } = Dimensions.get('window');
 
 export default function DashboardScreen() {
   const { getActiveTrip } = useTripStore();
   const trip = getActiveTrip();
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
 
@@ -34,8 +36,18 @@ export default function DashboardScreen() {
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text }]}>{trip.name} Dashboard</Text>
-        <Text style={[styles.subtitle, { color: colors.subtext }]}>{trip.destination}</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.title, { color: colors.text }]}>{trip.name} Dashboard</Text>
+            <Text style={[styles.subtitle, { color: colors.subtext }]}>{trip.destination}</Text>
+          </View>
+          <TouchableOpacity 
+            style={[{ padding: 8, borderRadius: 8, borderWidth: 1, backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={() => router.push('/trip/edit')}
+          >
+            <Edit2 size={20} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.statsContainer}>

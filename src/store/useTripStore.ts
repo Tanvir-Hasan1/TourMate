@@ -18,6 +18,9 @@ interface TripState {
   updateMember: (tripId: string, memberId: string, name: string, profilePicture?: string) => void;
   removeMember: (tripId: string, memberId: string) => void;
   addDeposit: (tripId: string, memberId: string, amount: number) => void;
+  updateDeposit: (tripId: string, depositId: string, amount: number) => void;
+  deleteDeposit: (tripId: string, depositId: string) => void;
+  withdrawFund: (tripId: string, memberId: string, amount: number) => void;
   
   // Expense Actions
   addExpense: (tripId: string, expense: Omit<Expense, 'id'>) => void;
@@ -115,7 +118,9 @@ export const useTripStore = create<TripState>()(
               const isInvolved = t.expenses.some(e => 
                 e.paidById === memberId || e.splits.some(s => s.memberId === memberId)
               );
-              if (isInvolved) {
+              const totalFund = (t.deposits || []).filter(d => d.memberId === memberId).reduce((sum, d) => sum + d.amount, 0);
+
+              if (isInvolved || totalFund > 0) {
                 return t; // Keep unmodified
               }
               return {
@@ -159,6 +164,86 @@ export const useTripStore = create<TripState>()(
               return {
                 ...t,
                 deposits: [...deps, { id, tripId, memberId, amount, date: new Date().toISOString() }],
+                activities: [newActivity, ...t.activities],
+              };
+            }
+            return t;
+          }),
+        }));
+      },
+
+      updateDeposit: (tripId, depositId, amount) => {
+        set((state) => ({
+          trips: state.trips.map((t) => {
+            if (t.id === tripId) {
+              const deps = t.deposits || [];
+              const deposit = deps.find(d => d.id === depositId);
+              if (!deposit) return t;
+              
+              const memberName = t.members.find(m => m.id === deposit.memberId)?.name || 'Someone';
+              const newActivity: Activity = {
+                id: generateId(),
+                tripId,
+                timestamp: new Date().toISOString(),
+                message: `Updated deposit for ${memberName} to ৳${amount}`,
+                type: 'expense_added',
+              };
+              return {
+                ...t,
+                deposits: deps.map(d => d.id === depositId ? { ...d, amount } : d),
+                activities: [newActivity, ...t.activities],
+              };
+            }
+            return t;
+          }),
+        }));
+      },
+
+      deleteDeposit: (tripId, depositId) => {
+        set((state) => ({
+          trips: state.trips.map((t) => {
+            if (t.id === tripId) {
+              const deps = t.deposits || [];
+              const deposit = deps.find(d => d.id === depositId);
+              if (!deposit) return t;
+              
+              const memberName = t.members.find(m => m.id === deposit.memberId)?.name || 'Someone';
+              const depositType = deposit.amount < 0 ? 'withdrawal' : 'deposit';
+              const newActivity: Activity = {
+                id: generateId(),
+                tripId,
+                timestamp: new Date().toISOString(),
+                message: `Deleted ${depositType} of ৳${Math.abs(deposit.amount)} for ${memberName}`,
+                type: 'expense_deleted',
+              };
+              return {
+                ...t,
+                deposits: deps.filter(d => d.id !== depositId),
+                activities: [newActivity, ...t.activities],
+              };
+            }
+            return t;
+          }),
+        }));
+      },
+
+      withdrawFund: (tripId, memberId, amount) => {
+        const id = generateId();
+        set((state) => ({
+          trips: state.trips.map((t) => {
+            if (t.id === tripId) {
+              const deps = t.deposits || [];
+              const memberName = t.members.find(m => m.id === memberId)?.name || 'Someone';
+              const newActivity: Activity = {
+                id: generateId(),
+                tripId,
+                timestamp: new Date().toISOString(),
+                message: `${memberName} withdrew ৳${amount} from Group Fund`,
+                type: 'expense_deleted',
+              };
+              return {
+                ...t,
+                deposits: [...deps, { id, tripId, memberId, amount: -amount, date: new Date().toISOString() }],
                 activities: [newActivity, ...t.activities],
               };
             }

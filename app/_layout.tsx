@@ -32,9 +32,9 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="trip/[id]/index" options={{ title: 'Trip Details' }} />
             <Stack.Screen name="trip/create" options={{ presentation: 'modal', title: 'Create Trip' }} />
+            <Stack.Screen name="trip/edit" options={{ presentation: 'modal', title: 'Edit Trip' }} />
             <Stack.Screen name="expense/add" options={{ presentation: 'modal', title: 'Add Expense' }} />
             <Stack.Screen name="expense/[id]" options={{ presentation: 'modal', title: 'Expense Details' }} />
-            <Stack.Screen name="+not-found" />
           </Stack>
         </ThemeProvider>
       </BottomSheetModalProvider>
