@@ -2,6 +2,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
 import { Trip } from '../store/types';
+import { calculateSettlements } from './settlement';
 
 export const exportTripToCSV = async (trip: Trip) => {
   let csv = 'Date,Title,Amount,Category,Paid By,Split Between\n';
@@ -66,6 +67,21 @@ export const exportTripToPDF = async (trip: Trip) => {
       </tr>
     `;
   });
+
+  const settlements = calculateSettlements(trip);
+  const settlementRows = settlements.length > 0
+    ? settlements.map(s => `
+      <tr>
+        <td>${s.fromName}</td>
+        <td>${s.toName}</td>
+        <td style="font-weight: bold;">৳${s.amount.toLocaleString()}</td>
+      </tr>
+    `).join('')
+    : `
+      <tr>
+        <td colspan="3" style="text-align: center; color: #6B7280;">All members are settled up.</td>
+      </tr>
+    `;
 
   const totalSpent = trip.expenses.reduce((sum, e) => sum + e.amount, 0);
 
@@ -133,6 +149,16 @@ export const exportTripToPDF = async (trip: Trip) => {
             <th>Net Balance</th>
           </tr>
           ${memberBalances}
+        </table>
+
+        <h2>Settlements</h2>
+        <table>
+          <tr>
+            <th>From</th>
+            <th>To</th>
+            <th>Amount</th>
+          </tr>
+          ${settlementRows}
         </table>
 
         <h2>Detailed Expenses</h2>
