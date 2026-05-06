@@ -3,10 +3,11 @@
   <h1>✈️ TourMate</h1>
   <p><b>Your Ultimate Trip and Expense Management App</b></p>
 
-  [![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactnative.dev/)
-  [![Expo](https://img.shields.io/badge/expo-1C1E24?style=for-the-badge&logo=expo&logoColor=#D04A37)](https://expo.dev/)
-  [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-  [![Zustand](https://img.shields.io/badge/Zustand-4A2B10?style=for-the-badge&logo=bear&logoColor=white)](https://github.com/pmndrs/zustand)
+[![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactnative.dev/)
+[![Expo](https://img.shields.io/badge/expo-1C1E24?style=for-the-badge&logo=expo&logoColor=#D04A37)](https://expo.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Zustand](https://img.shields.io/badge/Zustand-4A2B10?style=for-the-badge&logo=bear&logoColor=white)](https://github.com/pmndrs/zustand)
+
 </div>
 
 <hr>
@@ -30,14 +31,14 @@
 
 ## 🛠 Tech Stack
 
-| Category         | Technology / Library                                                                                  |
-| ---------------- | ----------------------------------------------------------------------------------------------------- |
-| **Framework**    | [React Native](https://reactnative.dev/) & [Expo](https://expo.dev/) (SDK 54)                         |
-| **Routing**      | [Expo Router](https://docs.expo.dev/router/introduction/) (File-based navigation)                     |
-| **State Mgt.**   | [Zustand](https://zustand-demo.pmnd.rs/) (Persisted via MMKV)                                         |
-| **Local Storage**| [React Native MMKV](https://github.com/mrousavy/react-native-mmkv)                                    |
-| **Charts**       | [Victory Native](https://commerce.nearform.com/open-source/victory-native/)                           |
-| **UI/Icons**     | [Lucide React Native](https://lucide.dev/), `@gorhom/bottom-sheet`                                    |
+| Category          | Technology / Library                                                              |
+| ----------------- | --------------------------------------------------------------------------------- |
+| **Framework**     | [React Native](https://reactnative.dev/) & [Expo](https://expo.dev/) (SDK 54)     |
+| **Routing**       | [Expo Router](https://docs.expo.dev/router/introduction/) (File-based navigation) |
+| **State Mgt.**    | [Zustand](https://zustand-demo.pmnd.rs/) (Persisted via MMKV)                     |
+| **Local Storage** | [React Native MMKV](https://github.com/mrousavy/react-native-mmkv)                |
+| **Charts**        | [Victory Native](https://commerce.nearform.com/open-source/victory-native/)       |
+| **UI/Icons**      | [Lucide React Native](https://lucide.dev/), `@gorhom/bottom-sheet`                |
 
 ---
 
@@ -55,17 +56,20 @@ Follow these instructions to get the project up and running on your local machin
 ### Installation
 
 1. **Clone the repository:**
+
    ```bash
-   git clone https://github.com/yourusername/TourMate.git
+   git clone https://github.com/Tanvir-Hasan1/TourMate.git
    cd TourMate
    ```
 
 2. **Install dependencies:**
+
    ```bash
    npm install
    ```
 
 3. **Start the development server:**
+
    ```bash
    npm start
    ```
@@ -99,6 +103,7 @@ TourMate/
 ├── package.json          # Project dependencies and scripts
 └── tsconfig.json         # TypeScript configuration
 ```
+
 </details>
 
 ---
