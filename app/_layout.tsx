@@ -35,6 +35,7 @@ export default function RootLayout() {
             <Stack.Screen name="trip/edit" options={{ presentation: 'modal', title: 'Edit Trip' }} />
             <Stack.Screen name="expense/add" options={{ presentation: 'modal', title: 'Add Expense' }} />
             <Stack.Screen name="expense/[id]" options={{ presentation: 'modal', title: 'Expense Details' }} />
+            <Stack.Screen name="about" options={{ presentation: 'modal', title: 'About' }} />
           </Stack>
         </ThemeProvider>
       </BottomSheetModalProvider>

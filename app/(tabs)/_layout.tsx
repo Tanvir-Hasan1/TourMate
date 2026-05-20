@@ -1,10 +1,11 @@
-import { Tabs } from 'expo-router';
-import { useColorScheme } from 'react-native';
+import { Tabs, useRouter } from 'expo-router';
+import { useColorScheme, TouchableOpacity } from 'react-native';
 import { Colors } from '../../src/constants/Colors';
-import { Home, PieChart, History, Receipt, Users } from 'lucide-react-native';
+import { Home, PieChart, History, Receipt, Users, Info } from 'lucide-react-native';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const router = useRouter();
 
   return (
     <Tabs
@@ -22,6 +23,11 @@ export default function TabLayout() {
         options={{
           title: 'Trips',
           tabBarIcon: ({ color }) => <Home size={28} color={color} />,
+          headerRight: () => (
+            <TouchableOpacity onPress={() => router.push('/about')} style={{ marginRight: 16 }}>
+              <Info size={24} color={Colors[colorScheme ?? 'light'].text} />
+            </TouchableOpacity>
+          ),
         }}
       />
       <Tabs.Screen
